@@ -1,98 +1,176 @@
+
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>My Cannon</title>
-    <meta charset="utf-8">    
-  </head>
-  <body>
-    <script src="Three.js"></script>
-    <script src="cannon.min.js"></script>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title>Babylon Template</title>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    </head>
+
+   <body>
+
+    <canvas id="renderCanvas" touch-action="none"></canvas> <!-- touch-action="none" for best results from PEP -->
+
     <script>
+        var canvas = document.getElementById("renderCanvas"); // Get the canvas element
+        var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+        var brown, door;
 
-      var world, mass, body, shape, timeStep=1/60,
-         camera, scene, renderer, geometry, material, mesh;
+        function interact(id) {
+          if (id === "sphere") {
+            brown.alpha = 0;
+            door.checkCollisions = false;
+          }
+        };
 
-      initThree();
-      initCannon();
-      animate();
+        /******* Add the create scene function ******/
+        var createScene = function () {
 
-      function initCannon() {
-        world = new CANNON.World();
-        world.gravity.set(0,-1,0);
-        world.broadphase = new CANNON.NaiveBroadphase();
-        world.solver.iterations = 10;
+            // Scene
+            var scene = new BABYLON.Scene(engine);
+            scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
 
-        var mass = 5;
-        boxShape = new CANNON.Box(new CANNON.Vec3(2,2,2));            
-        boxBody = new CANNON.Body({ mass: mass });
-        boxBody.addShape(boxShape);
-        boxBody.position.set(0,5,0);
-        world.addBody(boxBody);          
+            // Camera
+            var camera = new BABYLON.UniversalCamera("UniCamera", new BABYLON.Vector3(0, 1, -5), scene);
+            camera.attachControl(canvas, true);
+            //Set the ellipsoid around the camera (e.g. your player's size)
+            camera.ellipsoid = new BABYLON.Vector3(1.5, 1, 1.5); 
+            camera.applyGravity = true; 
+            camera.angularSpeed = 0.02;
 
-        // Create a plane
-        var groundShape = new CANNON.Plane();
-        var groundBody = new CANNON.Body({ mass: 0 });
-        groundBody.addShape(groundShape);
-        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
-        world.addBody(groundBody);    
-      }
+            // Lights 
+            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+            var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
 
-      function initThree() {
-        scene = new THREE.Scene();
+            // Materials
+            var pink = new BABYLON.StandardMaterial("pink", scene);
+            pink.diffuseColor = new BABYLON.Color3(1, 0, 1);
+            var grey= new BABYLON.StandardMaterial("grey", scene);
+            grey.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+            brown= new BABYLON.StandardMaterial("brown", scene);
+            brown.diffuseColor = new BABYLON.Color3(.4, .2, .05);
+            brown.alpha = 1;
+            var stone = new BABYLON.StandardMaterial("stone", scene);
+            stone.ambientTexture = new BABYLON.Texture("StoneTexture.png", scene);
 
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
-        camera.position.set(0,3,5);
-        scene.add( camera );
+            // Meshes
+            var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:2}, scene);            
+            sphere.material = pink;
 
-        // lights
-        var light, materials;
-        scene.add( new THREE.AmbientLight( 0x666666 ) );
-        light = new THREE.DirectionalLight( 0xffffff, 1.75 );
-        light.position.set( 20,20,20 );
-        scene.add( light );
+            var wall1 = BABYLON.MeshBuilder.CreateBox("wall1", {height: 4, width: 0.2, depth: 20}, scene);
+            wall1.material = grey
+            wall1.position = new BABYLON.Vector3(10, 1, 0);
+            var wall2 = BABYLON.MeshBuilder.CreateBox("wall2", {height: 4, width: 0.2, depth: 20}, scene);
+            wall2.material = grey
+            wall2.position = new BABYLON.Vector3(-10, 1, 0);
+            var wall3 = BABYLON.MeshBuilder.CreateBox("wall3", {height: 4, width: 20, depth: 0.2}, scene);
+            wall3.material = grey
+            wall3.position = new BABYLON.Vector3(0, 1, 10);
+            var wall4 = BABYLON.MeshBuilder.CreateBox("wall4", {height: 4, width: 8, depth: 0.2}, scene);
+            wall4.material = grey
+            wall4.position = new BABYLON.Vector3(-6, 1, -10);
+            var wall5 = BABYLON.MeshBuilder.CreateBox("wall5", {height: 4, width: 8, depth: 0.2}, scene);
+            wall5.material = grey
+            wall5.position = new BABYLON.Vector3(6, 1, -10);
 
-        // cube
-        var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
-        var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
-        cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
-        cubeMesh.castShadow = true;
-        scene.add(cubeMesh);
+            door = BABYLON.MeshBuilder.CreateBox("door", {height: 4, width: 4, depth: 0.2}, scene);
+            door.material = brown
+            door.position = new BABYLON.Vector3(0, 1, -10);
 
-        // floor
-        geometry = new THREE.PlaneGeometry( 100, 100, 1, 1 );
-        material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
-        //markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
-        floorMesh = new THREE.Mesh( geometry, material );
-        floorMesh.castShadow = true;
-        floorMesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
-        floorMesh.receiveShadow = true;
-        scene.add(floorMesh);
+            var sourcePlane = new BABYLON.Plane(0, 1, 0, 1);
+            sourcePlane.normalize();
+            var plane1 = BABYLON.MeshBuilder.CreatePlane("plane1", {height:20, width: 20, sourcePlane: sourcePlane}, scene);
+            plane1.material = grey;
+            var plane2 = BABYLON.MeshBuilder.CreatePlane("plane2", {height:100, width: 100, sourcePlane: sourcePlane}, scene);
+            plane2.position = new BABYLON.Vector3(0, -1.1, 0);
+            plane2.material = stone;
 
-        renderer = new THREE.WebGLRenderer();
-        renderer.setSize( window.innerWidth, window.innerHeight );
+            // Enable Collisions
+            scene.collisionsEnabled = true;
+            camera.checkCollisions = true;
+            sphere.checkCollisions = true;            
+            wall1.checkCollisions = true;
+            wall2.checkCollisions = true;
+            wall3.checkCollisions = true;
+            wall4.checkCollisions = true;
+            wall5.checkCollisions = true;
+            door.checkCollisions = true;
+            plane2.checkCollisions = true;
 
-        document.body.appendChild( renderer.domElement );
-      }
+            // Mouse Clicks
+            window.addEventListener("click", function () {
+              var pickResult = scene.pick(scene.pointerX, scene.pointerY);              
+              if (pickResult.pickedMesh) {
+                console.log(pickResult.pickedMesh.id);
+                interact(pickResult.pickedMesh.id);
+              }                
+            });
 
-      function animate() {
-        requestAnimationFrame( animate );
-        updatePhysics();
-        render();
-      }
 
-      function updatePhysics() {
-        // Step the physics world
-        world.step(timeStep);
+            // Animation
+            var animationBox = new BABYLON.Animation("myAnimation", "scaling.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            // An array with all animation keys
+            var keys = []; 
+            //At the animation key 0, the value of scaling is "1"
+            keys.push({
+              frame: 0,
+              value: 1
+            });
+            //At the animation key 20, the value of scaling is "0.2"
+            keys.push({
+              frame: 20,
+              value: 0.2
+            });
+            //At the animation key 100, the value of scaling is "1"
+            keys.push({
+              frame: 100,
+              value: 1
+            });
+            animationBox.setKeys(keys);
 
-        // Copy coordinates from Cannon.js to Three.js
-        cubeMesh.position.copy(boxBody.position);
-        cubeMesh.quaternion.copy(boxBody.quaternion);
-      }
+            sphere.animations = [];
+            sphere.animations.push(animationBox);
 
-      function render() {
-          renderer.render( scene, camera );
-      }
+            scene.beginAnimation(sphere, 0, 100, true);
 
+            return scene;
+        };
+        /******* End of the create scene function ******/
+
+        var scene = createScene(); //Call the createScene function
+
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () {
+                scene.render();
+        });
+
+        // Watch for browser/canvas resize events
+        window.addEventListener("resize", function () {
+                engine.resize();
+        });
     </script>
-  </body>
+
+   </body>
+
 </html>
+
