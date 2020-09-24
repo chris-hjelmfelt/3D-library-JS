@@ -4,7 +4,7 @@
 
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-        <title>Babylon Template</title>
+        <title>My Babylon</title>
 
         <style>
             html, body {
@@ -34,12 +34,17 @@
     <script>
         var canvas = document.getElementById("renderCanvas"); // Get the canvas element
         var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+        engine.enableOfflineSupport = false;
         var brown, door;
 
         function interact(id) {
           if (id === "sphere") {
-            brown.alpha = 0;
-            door.checkCollisions = false;
+            if (brown.alpha === 0){
+              brown.alpha = 1;
+            } else {
+              brown.alpha = 0;
+            }              
+            door.checkCollisions = !door.checkCollisions;
           }
         };
 
@@ -59,8 +64,35 @@
             camera.angularSpeed = 0.02;
 
             // Lights 
-            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
-            var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
+            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene);
+            //var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 3, 0), scene);
+
+            var light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(0, 1, 0), scene);
+            light.position = new BABYLON.Vector3(5, 10, 5);
+            light.intensity = 0.5;
+            var lightSphere = BABYLON.Mesh.CreateSphere("sphere", 10, 2, scene);
+            lightSphere.position = light.position;
+            lightSphere.material = new BABYLON.StandardMaterial("light", scene);
+            lightSphere.material.emissiveColor = new BABYLON.Color3(1, 1, 0);
+            
+            var light2 = new BABYLON.SpotLight("spot02", new BABYLON.Vector3(5, 10, -5,),
+                                  new BABYLON.Vector3(1, 5, -1), 1.1, 16, scene);
+            light2.intensity = 0.5;
+            var lightSphere2 = BABYLON.Mesh.CreateSphere("sphere", 10, 2, scene);
+            lightSphere2.position = light2.position;
+            lightSphere2.material = new BABYLON.StandardMaterial("light2", scene);
+            lightSphere2.material.emissiveColor = new BABYLON.Color3(1, 1, 0);
+            
+
+            // Skybox 
+            var skybox = BABYLON.Mesh.CreateBox("skyBox", 500.0, scene);
+            var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+            skyboxMaterial.backFaceCulling = false;
+            skybox.material = skyboxMaterial;
+            skybox.infiniteDistance = true;
+            skyboxMaterial.disableLighting = true;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("/three-example/sky/skyline", scene);
+            skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
 
             // Materials
             var pink = new BABYLON.StandardMaterial("pink", scene);
@@ -74,7 +106,8 @@
             stone.ambientTexture = new BABYLON.Texture("StoneTexture.png", scene);
 
             // Meshes
-            var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:2}, scene);            
+            var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:1}, scene);  
+            sphere.position = new BABYLON.Vector3(3, 1.2, 8);          
             sphere.material = pink;
 
             var wall1 = BABYLON.MeshBuilder.CreateBox("wall1", {height: 4, width: 0.2, depth: 20}, scene);
@@ -85,30 +118,40 @@
             wall2.position = new BABYLON.Vector3(-10, 1, 0);
             var wall3 = BABYLON.MeshBuilder.CreateBox("wall3", {height: 4, width: 20, depth: 0.2}, scene);
             wall3.material = grey
-            wall3.position = new BABYLON.Vector3(0, 1, 10);
+            wall3.position = new BABYLON.Vector3(0, 1, -10);
             var wall4 = BABYLON.MeshBuilder.CreateBox("wall4", {height: 4, width: 8, depth: 0.2}, scene);
             wall4.material = grey
-            wall4.position = new BABYLON.Vector3(-6, 1, -10);
+            wall4.position = new BABYLON.Vector3(-6, 1, 10);
             var wall5 = BABYLON.MeshBuilder.CreateBox("wall5", {height: 4, width: 8, depth: 0.2}, scene);
             wall5.material = grey
-            wall5.position = new BABYLON.Vector3(6, 1, -10);
+            wall5.position = new BABYLON.Vector3(6, 1, 10);
 
             door = BABYLON.MeshBuilder.CreateBox("door", {height: 4, width: 4, depth: 0.2}, scene);
             door.material = brown
-            door.position = new BABYLON.Vector3(0, 1, -10);
+            door.position = new BABYLON.Vector3(0, 1, 10);
 
             var sourcePlane = new BABYLON.Plane(0, 1, 0, 1);
             sourcePlane.normalize();
             var plane1 = BABYLON.MeshBuilder.CreatePlane("plane1", {height:20, width: 20, sourcePlane: sourcePlane}, scene);
             plane1.material = grey;
-            var plane2 = BABYLON.MeshBuilder.CreatePlane("plane2", {height:100, width: 100, sourcePlane: sourcePlane}, scene);
+            plane1.disableLighting = true;
+            var plane2 = BABYLON.MeshBuilder.CreatePlane("plane2", {height:300, width: 300, sourcePlane: sourcePlane}, scene);
             plane2.position = new BABYLON.Vector3(0, -1.1, 0);
             plane2.material = stone;
+            plane2.disableLighting = true;
+
+            // Shadows
+            var shadowGenerator = new BABYLON.ShadowGenerator(1024, light);
+            shadowGenerator.getShadowMap().renderList.push(sphere);
+            shadowGenerator.usePoissonSampling = true;
+            var shadowGenerator2 = new BABYLON.ShadowGenerator(1024, light2);
+            shadowGenerator2.getShadowMap().renderList.push(sphere);
+            shadowGenerator2.usePoissonSampling = true;
+            plane1.receiveShadows = true;
 
             // Enable Collisions
             scene.collisionsEnabled = true;
-            camera.checkCollisions = true;
-            sphere.checkCollisions = true;            
+            camera.checkCollisions = true;           
             wall1.checkCollisions = true;
             wall2.checkCollisions = true;
             wall3.checkCollisions = true;
@@ -121,37 +164,47 @@
             window.addEventListener("click", function () {
               var pickResult = scene.pick(scene.pointerX, scene.pointerY);              
               if (pickResult.pickedMesh) {
-                console.log(pickResult.pickedMesh.id);
+                //console.log(pickResult.pickedMesh.id);
                 interact(pickResult.pickedMesh.id);
               }                
             });
 
-
-            // Animation
-            var animationBox = new BABYLON.Animation("myAnimation", "scaling.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
-            // An array with all animation keys
-            var keys = []; 
-            //At the animation key 0, the value of scaling is "1"
-            keys.push({
-              frame: 0,
-              value: 1
+            // Load GLTF
+            BABYLON.SceneLoader.ImportMesh("","/three-example/gltf/bench/", "scene.gltf", scene, function (mesh) {
+              console.log(mesh);
+              mesh[0].position = new BABYLON.Vector3(-6, -1, 9);  
+              //mesh[1].position = new BABYLON.Vector3(0, 0, 0);
+              //mesh[2].position = new BABYLON.Vector3(0, 0, 0);
+              mesh[0].scaling = new BABYLON.Vector3(0.025, 0.02, 0.02);
+              //mesh[1].scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+              //mesh[2].scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
             });
-            //At the animation key 20, the value of scaling is "0.2"
-            keys.push({
-              frame: 20,
-              value: 0.2
-            });
-            //At the animation key 100, the value of scaling is "1"
-            keys.push({
-              frame: 100,
-              value: 1
-            });
-            animationBox.setKeys(keys);
 
-            sphere.animations = [];
-            sphere.animations.push(animationBox);
+            
 
-            scene.beginAnimation(sphere, 0, 100, true);
+            // // Animation
+            // var animationBox = new BABYLON.Animation("myAnimation", "scaling.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            // // An array with all animation keys
+            // var keys = []; 
+            // //At the animation key 0, the value of scaling is "1"
+            // keys.push({
+            //   frame: 0,
+            //   value: 1
+            // });
+            // //At the animation key 20, the value of scaling is "0.2"
+            // keys.push({
+            //   frame: 20,
+            //   value: 0.2
+            // });
+            // //At the animation key 100, the value of scaling is "1"
+            // keys.push({
+            //   frame: 100,
+            //   value: 1
+            // });
+            // animationBox.setKeys(keys);
+            // sphere.animations = [];
+            // sphere.animations.push(animationBox);
+            // scene.beginAnimation(sphere, 0, 100, true);
 
             return scene;
         };
@@ -161,7 +214,7 @@
 
         // Register a render loop to repeatedly render the scene
         engine.runRenderLoop(function () {
-                scene.render();
+                scene.render();                
         });
 
         // Watch for browser/canvas resize events
