@@ -1,10 +1,9 @@
 
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
-
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-        <title>My Babylon</title>
+        <title>Babylon.js Example Space - by Chris</title>
 
         <style>
             html, body {
@@ -14,7 +13,6 @@
                 margin: 0;
                 padding: 0;
             }
-
             #renderCanvas {
                 width: 100%;
                 height: 100%;
@@ -26,16 +24,17 @@
         <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
         <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
     </head>
-
    <body>
 
     <canvas id="renderCanvas" touch-action="none"></canvas> <!-- touch-action="none" for best results from PEP -->
 
     <script>
+        var camera1, camera2, camera3, zoomAction = false, walkAction = false;
+        var cone, cone2, focusMesh;
+        var brown, door;
         var canvas = document.getElementById("renderCanvas"); // Get the canvas element
         var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
-        engine.enableOfflineSupport = false;
-        var brown, door;
+
 
         function interact(id) {
           if (id === "sphere") {
@@ -50,38 +49,42 @@
 
         /******* Add the create scene function ******/
         var createScene = function () {
-
             // Scene
             var scene = new BABYLON.Scene(engine);
             scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
 
-            // Camera
-            var camera = new BABYLON.UniversalCamera("UniCamera", new BABYLON.Vector3(0, 1, -5), scene);
-            camera.attachControl(canvas, true);
-            //Set the ellipsoid around the camera (e.g. your player's size)
-            camera.ellipsoid = new BABYLON.Vector3(1.5, 1, 1.5); 
-            camera.applyGravity = true; 
-            camera.angularSpeed = 0.02;
+            // camera1
+            camera1 = new BABYLON.UniversalCamera("Unicamera", new BABYLON.Vector3(0, 1, -5), scene);            
+            camera1.attachControl(canvas, true);
+            //Set the ellipsoid around the camera1 (player's size)
+            camera1.ellipsoid = new BABYLON.Vector3(1.5, 1, 1.5); 
+            camera1.applyGravity = true;
+            // add WASD movement
+            camera1.keysUp.push(87);
+            camera1.keysDown.push(83);
+            camera1.keysLeft.push(65);
+            camera1.keysRight.push(68);     
+
+            camera2 = new BABYLON.ArcRotateCamera("ZoomCamera", 0, 1, 0, new BABYLON.Vector3(0,1,3), scene);
+            camera2.attachControl(canvas, true);
+            camera2.position = camera1.position;            
+            camera2.parent = camera1;            
+
+            camera3 = new BABYLON.ArcRotateCamera("WatchCamera", 0, 0, 14, new BABYLON.Vector3(0, 0, 0), scene);
+            camera3.attachControl(canvas, true);            
+            camera3.inputs.clear();
+            
+            // Two Viewports
+            camera1.viewport = new BABYLON.Viewport(0, 0.5, 1, 1);
+            camera2.viewport = camera1.viewport;
+            camera3.viewport = new BABYLON.Viewport(0, 0, 1, 0.5);            
+
+            scene.activeCameras.push(camera1);
+            scene.activeCameras.push(camera3);
+            
 
             // Lights 
-            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene);
-            //var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 3, 0), scene);
-
-            var light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(0, 1, 0), scene);
-            light.position = new BABYLON.Vector3(5, 10, 5);
-            light.intensity = 0.5;
-            var lightSphere = BABYLON.Mesh.CreateSphere("sphere", 10, 2, scene);
-            lightSphere.position = light.position;
-            lightSphere.material = new BABYLON.StandardMaterial("light", scene);
-            lightSphere.material.emissiveColor = new BABYLON.Color3(1, 1, 0);
-            
-            var light2 = new BABYLON.SpotLight("spot02", new BABYLON.Vector3(5, 10, -5,),
-                                  new BABYLON.Vector3(1, 5, -1), 1.1, 16, scene);
-            light2.intensity = 0.5;
-            var lightSphere2 = BABYLON.Mesh.CreateSphere("sphere", 10, 2, scene);
-            lightSphere2.position = light2.position;
-            lightSphere2.material = new BABYLON.StandardMaterial("light2", scene);
-            lightSphere2.material.emissiveColor = new BABYLON.Color3(1, 1, 0);
+            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene);            
             
 
             // Skybox 
@@ -91,8 +94,9 @@
             skybox.material = skyboxMaterial;
             skybox.infiniteDistance = true;
             skyboxMaterial.disableLighting = true;
-            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("/three-example/sky/skyline", scene);
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("/virtual-babylon/sky/skyline", scene);
             skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+
 
             // Materials
             var pink = new BABYLON.StandardMaterial("pink", scene);
@@ -104,11 +108,39 @@
             brown.alpha = 1;
             var stone = new BABYLON.StandardMaterial("stone", scene);
             stone.ambientTexture = new BABYLON.Texture("StoneTexture.png", scene);
+            var camTex1 = new BABYLON.StandardMaterial("camTex", scene);
+            camTex1.diffuseColor = new BABYLON.Color3(1, 1, 0); 
+            camTex1.alpha = 0.5;
+            var camTex2 = new BABYLON.StandardMaterial("camTex", scene);
+            camTex2.diffuseColor = new BABYLON.Color3(1, 0.7, 0.5); 
+            camTex2.alpha = 0.5;
+            var focusTex = new BABYLON.StandardMaterial("camTex", scene);
+            focusTex.diffuseColor = new BABYLON.Color3(1, 1, 1); 
+            focusTex.alpha = 0.9;
+
 
             // Meshes
             var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:1}, scene);  
             sphere.position = new BABYLON.Vector3(3, 1.2, 8);          
-            sphere.material = pink;
+            sphere.material = pink;            
+            cone = BABYLON.MeshBuilder.CreateCylinder("cone", {height: 0.5, diameterTop: 0, diameterBottom: 0.5, tessellation: 12}, scene);
+            cone.position = camera1.position;
+            cone.rotation.x = Math.PI/2;
+            cone.material = camTex1;
+            cone.parent = camera1;                       
+            cone2 = BABYLON.MeshBuilder.CreateCylinder("cone2", {height: 0.5, diameterTop: 0, diameterBottom: 0.5, tessellation: 12}, scene);
+            cone2.position = camera1.position;
+            cone2.rotation.x = Math.PI/2;
+            cone2.material = camTex2;
+            cone2.parent = camera2;
+            focusMesh = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:1}, scene);  
+            focusMesh.position = camera1.getFrontPosition(5);        
+            focusMesh.material = focusTex;
+
+            camera2.lockedTarget = focusMesh;
+            camera3.lockedTarget = cone;
+            console.log(cone.position, " - - - ", camera1.position); 
+            
 
             var wall1 = BABYLON.MeshBuilder.CreateBox("wall1", {height: 4, width: 0.2, depth: 20}, scene);
             wall1.material = grey
@@ -133,25 +165,18 @@
             var sourcePlane = new BABYLON.Plane(0, 1, 0, 1);
             sourcePlane.normalize();
             var plane1 = BABYLON.MeshBuilder.CreatePlane("plane1", {height:20, width: 20, sourcePlane: sourcePlane}, scene);
+            plane1.position = new BABYLON.Vector3(0, -1, 0);
             plane1.material = grey;
             plane1.disableLighting = true;
             var plane2 = BABYLON.MeshBuilder.CreatePlane("plane2", {height:300, width: 300, sourcePlane: sourcePlane}, scene);
-            plane2.position = new BABYLON.Vector3(0, -1.1, 0);
+            plane2.position = new BABYLON.Vector3(0, -1.5, 0);
             plane2.material = stone;
             plane2.disableLighting = true;
 
-            // Shadows
-            var shadowGenerator = new BABYLON.ShadowGenerator(1024, light);
-            shadowGenerator.getShadowMap().renderList.push(sphere);
-            shadowGenerator.usePoissonSampling = true;
-            var shadowGenerator2 = new BABYLON.ShadowGenerator(1024, light2);
-            shadowGenerator2.getShadowMap().renderList.push(sphere);
-            shadowGenerator2.usePoissonSampling = true;
-            plane1.receiveShadows = true;
 
             // Enable Collisions
             scene.collisionsEnabled = true;
-            camera.checkCollisions = true;           
+            camera1.checkCollisions = true;           
             wall1.checkCollisions = true;
             wall2.checkCollisions = true;
             wall3.checkCollisions = true;
@@ -160,66 +185,97 @@
             door.checkCollisions = true;
             plane2.checkCollisions = true;
 
+
             // Mouse Clicks
             window.addEventListener("click", function () {
               var pickResult = scene.pick(scene.pointerX, scene.pointerY);              
               if (pickResult.pickedMesh) {
-                //console.log(pickResult.pickedMesh.id);
+                console.log(pickResult.pickedMesh.id);
                 interact(pickResult.pickedMesh.id);
               }                
             });
 
+
             // Load GLTF
-            BABYLON.SceneLoader.ImportMesh("","/three-example/gltf/bench/", "scene.gltf", scene, function (mesh) {
-              console.log(mesh);
+            BABYLON.SceneLoader.ImportMesh("","/virtual-babylon/gltf/bench/", "scene.gltf", scene, function (mesh) {
               mesh[0].position = new BABYLON.Vector3(-6, -1, 9);  
-              //mesh[1].position = new BABYLON.Vector3(0, 0, 0);
-              //mesh[2].position = new BABYLON.Vector3(0, 0, 0);
               mesh[0].scaling = new BABYLON.Vector3(0.025, 0.02, 0.02);
-              //mesh[1].scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-              //mesh[2].scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-            });
+            });    
 
-            
 
-            // // Animation
-            // var animationBox = new BABYLON.Animation("myAnimation", "scaling.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
-            // // An array with all animation keys
-            // var keys = []; 
-            // //At the animation key 0, the value of scaling is "1"
-            // keys.push({
-            //   frame: 0,
-            //   value: 1
-            // });
-            // //At the animation key 20, the value of scaling is "0.2"
-            // keys.push({
-            //   frame: 20,
-            //   value: 0.2
-            // });
-            // //At the animation key 100, the value of scaling is "1"
-            // keys.push({
-            //   frame: 100,
-            //   value: 1
-            // });
-            // animationBox.setKeys(keys);
-            // sphere.animations = [];
-            // sphere.animations.push(animationBox);
-            // scene.beginAnimation(sphere, 0, 100, true);
+            var map ={}; //object for multiple key presses
+            scene.actionManager = new BABYLON.ActionManager(scene);
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, function (evt) {                                
+                map[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+                walkAction = true;
+                zoomAction = false;
+                scene.activeCameras[0] = camera1; 
+                //console.log(camera1.cameraDirection);
+                focusMesh.position = camera1.getFrontPosition(5); 
+            }));
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function (evt) {                                
+                map[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+                walkAction = false;
+                camera2.position = camera1.position; 
+                console.log(cone.position, " - - - ", camera1.position); 
+                cone.position = camera1.position;
+                cone2.position = camera2.position;
+            }));
+
+           
+            scene.onPrePointerObservable.add( function(pointerInfo, eventState) {  
+              var event = pointerInfo.event;
+              var delta = 0;
+              if (event.wheelDelta) {                
+                  delta = event.wheelDelta;
+              }
+              else if (event.deltaY) {
+                  delta = -event.deltaY;
+              }
+              if (delta) {
+                  zoomAction = true;
+                  scene.activeCameras[0] = camera2; 
+                  focusMesh.position = camera1.getFrontPosition(5);                  
+                  camera2.lockedTarget = focusMesh;
+                  var dir = scene.activeCameras[0].getDirection(BABYLON.Axis.Z);
+                  if (delta > 0)
+                  {
+                      scene.activeCameras[0].position.addInPlace(dir);
+                  }
+                  else
+                  { 
+                      scene.activeCameras[0].position.subtractInPlace(dir);
+                  }
+              }              
+          }, BABYLON.PointerEventTypes.POINTERWHEEL, false);
+          
 
             return scene;
         };
         /******* End of the create scene function ******/
+        var scene = createScene(); 
 
-        var scene = createScene(); //Call the createScene function
+
+        function actions() {
+          if (walkAction === true) {
+            focusMesh.position = camera1.getFrontPosition(5);
+            camera2.position = camera1.position;
+          }           
+          if (zoomAction === true){
+            // 
+          } 
+        }
+
 
         // Register a render loop to repeatedly render the scene
         engine.runRenderLoop(function () {
-                scene.render();                
+          actions();  
+          scene.render();                   
         });
 
         // Watch for browser/canvas resize events
         window.addEventListener("resize", function () {
-                engine.resize();
+          engine.resize();
         });
     </script>
 
