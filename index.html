@@ -4,20 +4,20 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
         <title>Babylon.js Example Space - by Chris</title>
-
+        
         <style>
-            html, body {
-                overflow: hidden;
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            #renderCanvas {
-                width: 100%;
-                height: 100%;
-                touch-action: none;
-            }
+          html, body {
+          overflow: hidden;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        #renderCanvas {
+          width: 100%;
+          height: 100%;
+          touch-action: none;
+        }
         </style>
 
         <script src="https://preview.babylonjs.com/babylon.js"></script>
@@ -27,26 +27,18 @@
    <body>
 
     <canvas id="renderCanvas" touch-action="none"></canvas> <!-- touch-action="none" for best results from PEP -->
-    
+    <div id="posterD">
+      <div id="closeX">X</div>
+    </div>
 
     <script>
-        var playerSize, camera1, viewPoint, examine = null;
-        var brown, door, holder, poster;
+        var playerSize, camera1;
+        var brown, door, poster;
+        var cameraModel, paper, paperTimer = 0, prepPhoto = false, flash, flashTimer = 0, flashOn = false;
         var inputMap ={};
         var canvas = document.getElementById("renderCanvas"); // Get the canvas element
         var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 
-
-        function interact(id) {
-          if (id === "sphere") {
-            if (brown.alpha === 0){
-              brown.alpha = 1;
-            } else {
-              brown.alpha = 0;
-            }              
-            door.checkCollisions = !door.checkCollisions;
-          }
-        };
 
         /******* Add the create scene function ******/
         var createScene = function () {
@@ -73,77 +65,99 @@
             
 
             // Lights 
-            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene);            
-            
+            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene); 
+            flash = new BABYLON.DirectionalLight("flash", new BABYLON.Vector3(-9.3, 1, 0), scene);    
+            flash.setEnabled(false);
 
             // Skybox 
-            var skybox = BABYLON.Mesh.CreateBox("skyBox", 500.0, scene);
-            var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-            skyboxMaterial.backFaceCulling = false;
-            skybox.material = skyboxMaterial;
-            skybox.infiniteDistance = true;
-            skyboxMaterial.disableLighting = true;
-            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("/virtual-babylon/sky/skyline", scene);
-            skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+            // var skybox = BABYLON.Mesh.CreateBox("skyBox", 500.0, scene);
+            // var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+            // skyboxMaterial.backFaceCulling = false;
+            // skybox.material = skyboxMaterial;
+            // skybox.infiniteDistance = true;
+            // skyboxMaterial.disableLighting = true;
+            // skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("/virtual-babylon/sky/skyline", scene);
+            // skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
 
 
             // Materials
             var pink = new BABYLON.StandardMaterial("pink", scene);
             pink.diffuseColor = new BABYLON.Color3(1, 0, 1);
-            var grey= new BABYLON.StandardMaterial("grey", scene);
-            grey.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
-            var transparent = new BABYLON.StandardMaterial("transparent", scene);
-            transparent.diffuseColor = new BABYLON.Color3(1, 1, 1);
-            transparent.alpha = 0.1;
+            var greyDark = new BABYLON.StandardMaterial("greyDark", scene);
+            greyDark.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+            var greyMid = new BABYLON.StandardMaterial("greyMid", scene);
+            greyMid.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+            var greyLight = new BABYLON.StandardMaterial("greyLight", scene);
+            greyLight.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
             brown = new BABYLON.StandardMaterial("brown", scene);
             brown.diffuseColor = new BABYLON.Color3(.4, .2, .05);
             brown.alpha = 1;
+            brown2 = new BABYLON.StandardMaterial("brown", scene);
+            brown2.diffuseColor = new BABYLON.Color3(.6, .4, .1);
+            var transparent = new BABYLON.StandardMaterial("transparent", scene);
+            transparent.diffuseColor = new BABYLON.Color3(1, 1, 1);
+            transparent.alpha = 0.1;            
             var stone = new BABYLON.StandardMaterial("stone", scene);
             stone.ambientTexture = new BABYLON.Texture("StoneTexture.png", scene);
             var punk = new BABYLON.StandardMaterial("stone", scene);
             punk.ambientTexture = new BABYLON.Texture("flyer.jpg", scene);
 
-            // Meshes
-            var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:1}, scene);  
-            sphere.position = new BABYLON.Vector3(3, 1.2, 8);          
-            sphere.material = pink;   
-            viewPoint = BABYLON.MeshBuilder.CreateBox("viewPoint",  {height: 1.5, width: 2, depth: 2}, scene);  
-            viewPoint.position = new BABYLON.Vector3(0, 4, 0);          
-            viewPoint.material = transparent;
 
+            // Meshes            
             var wall1 = BABYLON.MeshBuilder.CreateBox("wall1", {height: 4, width: 0.2, depth: 20}, scene);
-            wall1.material = grey;
+            wall1.material = greyDark;
             wall1.position = new BABYLON.Vector3(10, 1, 0);
             var wall2 = BABYLON.MeshBuilder.CreateBox("wall2", {height: 4, width: 0.2, depth: 20}, scene);
-            wall2.material = grey;
+            wall2.material = greyDark;
             wall2.position = new BABYLON.Vector3(-10, 1, 0);
             var wall3 = BABYLON.MeshBuilder.CreateBox("wall3", {height: 4, width: 20, depth: 0.2}, scene);
-            wall3.material = grey;
+            wall3.material = greyDark;
             wall3.position = new BABYLON.Vector3(0, 1, -10);
             var wall4 = BABYLON.MeshBuilder.CreateBox("wall4", {height: 4, width: 8, depth: 0.2}, scene);
-            wall4.material = grey;
+            wall4.material = greyDark;
             wall4.position = new BABYLON.Vector3(-6, 1, 10);
             var wall5 = BABYLON.MeshBuilder.CreateBox("wall5", {height: 4, width: 8, depth: 0.2}, scene);
-            wall5.material = grey;
+            wall5.material = greyDark;
             wall5.position = new BABYLON.Vector3(6, 1, 10);
 
             door = BABYLON.MeshBuilder.CreateBox("door", {height: 4, width: 4, depth: 0.2}, scene);
             door.material = brown;
             door.position = new BABYLON.Vector3(0, 1, 10);
+            var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:1}, scene);  
+            sphere.position = new BABYLON.Vector3(3, 1.2, 8);          
+            sphere.material = pink; 
             poster = BABYLON.MeshBuilder.CreateBox("poster", {height: 0.675, width: 0.525, depth: 0.5}, scene);
             poster.material = punk;
             poster.position = new BABYLON.Vector3(-3.5, 1.5, 10);
 
+            var table = BABYLON.MeshBuilder.CreateBox("table", {height: 1.5, width: 2, depth: 4}, scene);
+            table.material = brown;
+            table.position = new BABYLON.Vector3(-9, -0.5, 0);
+            cameraModel = BABYLON.MeshBuilder.CreateBox("cameraModel", {height: 0.3, width: 0.2, depth: 0.4}, scene);
+            cameraModel.material = pink;
+            cameraModel.position = new BABYLON.Vector3(-8.5, 0.4, 1);
+            var cookies = BABYLON.MeshBuilder.CreateCylinder("cookies", {height: 0.1, diameter: 1, tessellation: 20}, scene);
+            cookies.position = new BABYLON.Vector3(-9, 0.3, -0.7);
+            cookies.material = brown2;
+            var printer = BABYLON.MeshBuilder.CreateBox("printer", {height: 0.5, width: 0.5, depth: 1}, scene);
+            printer.material = greyMid;
+            printer.position = new BABYLON.Vector3(-9.3, 0.5, 1);
+
             var sourcePlane = new BABYLON.Plane(0, 1, 0, 1);
+            var sourcePlane2 = new BABYLON.Plane(1, 0, 0, 1);
             sourcePlane.normalize();
             var plane1 = BABYLON.MeshBuilder.CreatePlane("plane1", {height:20, width: 20, sourcePlane: sourcePlane}, scene);
             plane1.position = new BABYLON.Vector3(0, -1, 0);
-            plane1.material = grey;
+            plane1.material = greyLight;
             plane1.disableLighting = true;
             var plane2 = BABYLON.MeshBuilder.CreatePlane("plane2", {height:300, width: 300, sourcePlane: sourcePlane}, scene);
             plane2.position = new BABYLON.Vector3(0, -1.5, 0);
             plane2.material = stone;
             plane2.disableLighting = true;
+            paper = BABYLON.MeshBuilder.CreatePlane("paper", {height:1, width: 0.6, sourcePlane: sourcePlane2}, scene);
+            paper.position = new BABYLON.Vector3(-9.3, 0, 1);
+            paper.material = greyLight;
+            paper.disableLighting = true;
 
 
             // Enable Collisions
@@ -161,18 +175,10 @@
             // Mouse Clicks
             window.addEventListener("click", function () {
               var pickResult = scene.pick(scene.pointerX, scene.pointerY);              
-              if (pickResult.pickedMesh) {
-                //console.log(pickResult.pickedMesh.id);
-                interact(pickResult.pickedMesh.id);
-              }                
+              if (pickResult.pickedMesh) {                
+                interact(pickResult.pickedMesh.id);             
+              }             
             });
-
-
-            // Load GLTF
-            BABYLON.SceneLoader.ImportMesh("","/virtual-babylon/gltf/bench/", "scene.gltf", scene, function (mesh) {
-              mesh[0].position = new BABYLON.Vector3(-6, -1, 9);  
-              mesh[0].scaling = new BABYLON.Vector3(0.025, 0.02, 0.02);
-            });    
 
 
             // Keyboard events            
@@ -184,55 +190,26 @@
                 inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
             }));
 
-            // Tigger examine options
-            viewPoint.actionManager = new BABYLON.ActionManager(scene);
-            viewPoint.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-                trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
-                parameter: poster
-            }, function () {
-                console.log("press e to examine");
-                holder.style.display = "block";
-                examine = poster;
-            }));
-
-            viewPoint.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-                trigger: BABYLON.ActionManager.OnIntersectionExitTrigger,
-                parameter: poster
-            }, function () {
-                examine = null;
-                holder.style.display = "none";
-                poster.style.display = "none";
-            }));
-
-            holder = document.createElement("div");
-            holder.style.position = "absolute";
-            holder.style.top = "25%";
-            holder.style.left = "25%";
-            holder.style.width = "50%";
-            holder.style.height = "70px";
-            holder.style.color = "#ffffff";
-            holder.style.font = "bold 20px arial,serif"; 
-            var textBox = document.createElement("div");
-            textBox.style.width = "95%";
-            textBox.style.height = "95%";
-            textBox.innerHTML = "Press E to examine"
-            textBox.style.cssFloat = "left";
-            textBox.style.marginLeft = "1em";
-            holder.appendChild(textBox);
-            holder.style.display = "none";
-            document.body.appendChild(holder);
-
-            poster = document.createElement("div");
-            poster.style.position = "absolute";
-            poster.style.top = "10px";
-            poster.style.left = "25%";
-            poster.style.width = "700px";
-            poster.style.height = "906px";
-            poster.style.backgroundImage = "url('flyer.jpg')";
-            poster.style.border = "solid 3px #364249";
-            poster.style.display = "none";
-            document.body.appendChild(poster);
-
+            
+            
+            // Style DOM Elements
+            posterD.style.position = "absolute";
+            posterD.style.top = "1%";
+            posterD.style.left = "30%";
+            posterD.style.width = "630px";
+            posterD.style.height = "815px";
+            posterD.style.backgroundImage = 'url("flyer.jpg")';
+            posterD.style.color = "red";
+            posterD.style.border = "solid 3px #ffffff";
+            posterD.style.display = "none";
+            closeX.style.width = "30px";
+            closeX.style.height = "30px";
+            closeX.style.fontSize = "3em";
+            closeX.style.cssFloat = "right";
+            closeX.style.cursor = "pointer";
+            posterD.appendChild(closeX);
+            document.body.appendChild(posterD);
+              
 
             return scene;
         };
@@ -240,31 +217,68 @@
         var scene = createScene(); 
 
 
-        function examineObject() {
-          if (poster.style.display === "block"){
-            poster.style.display = "none";
-          } else {
-            poster.style.display = "block";
+        function interact(id) {
+          if (id === "sphere") {
+            if (brown.alpha === 0){
+              brown.alpha = 1;
+            } else {
+              brown.alpha = 0;
+            }              
+            door.checkCollisions = !door.checkCollisions;
+          } else if (id === "poster") {  
+            if (posterD.style.display === "block"){
+              posterD.style.display = "none";
+            } else {
+              posterD.style.backgroundImage = 'url("flyer.jpg")';
+              posterD.style.display = "block";
+            }             
+          } else if (id === "cameraModel") {
+            flash.setEnabled(true);
+            flashOn = true;   
+            prepPhoto = true;   
+            // camera animation
+          } else if (id === "paper") {
+            posterD.style.backgroundImage = 'url("doc.jpg")';
+            posterD.style.display = "block";
           }
-          console.log("examine");
-          holder.style.display = "none";         
-        }
+        };        
 
-        function actions() {
-          if(inputMap["c"]){
-            camera1.ellipsoid = new BABYLON.Vector3(1.5, 0.5, 1.5); 
-          } 
-          if(inputMap["e"] && examine !== null){
-            examineObject();
-          }
+        var closePoster = function() {
+          posterD.style.display = "none";
         }
-
+        closeX.addEventListener("click", closePoster, false);
+        
+      
+        // function actions() {
+        //   if(inputMap["c"]){
+        //     camera1.ellipsoid = new BABYLON.Vector3(1.5, 0.5, 1.5); 
+        //   } 
+        //   if(inputMap["e"] && examine !== null){
+        //     examineObject();
+        //   }
+        // }
         
 
         // Register a render loop to repeatedly render the scene
         engine.runRenderLoop(function () {
-          actions();  
-          viewPoint.position = camera1.getFrontPosition(2.5); 
+          // actions();           
+          if(flashOn === true){
+            flashTimer += 1;
+          }
+          if (prepPhoto === true){
+            paperTimer += 1;
+          }
+          if (flashTimer > 10) {
+            flash.setEnabled(false);
+            flashOn = false;           
+            flashTimer = 0;            
+          }  
+          if (paperTimer > 80)  {
+            paper.position = new BABYLON.Vector3(-9.3, 0.7, 1);
+            paperTimer = 0;
+            prepPhoto = false;
+          }  
+
           scene.render();                   
         });
 
