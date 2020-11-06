@@ -38,8 +38,9 @@
         var inputMap ={};
         var canvas = document.getElementById("renderCanvas"); // Get the canvas element
         var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+        var testLocX = 0, testLocZ = 20;
 
-
+        
         /******* Add the create scene function ******/
         var createScene = function () {
             // Scene
@@ -66,8 +67,10 @@
 
             // Lights 
             var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 5, 0), scene); 
+            light1.intensity = 2;
             flash = new BABYLON.DirectionalLight("flash", new BABYLON.Vector3(-9.3, 1, 0), scene);    
-            flash.setEnabled(false);
+            flash.setEnabled(false);         
+        
 
             // Skybox 
             // var skybox = BABYLON.Mesh.CreateBox("skyBox", 500.0, scene);
@@ -103,6 +106,7 @@
             punk.ambientTexture = new BABYLON.Texture("flyer.jpg", scene);
 
 
+          
             // Meshes            
             var wall1 = BABYLON.MeshBuilder.CreateBox("wall1", {height: 4, width: 0.2, depth: 20}, scene);
             wall1.material = greyDark;
@@ -159,6 +163,27 @@
             paper.material = greyLight;
             paper.disableLighting = true;
 
+             
+            var barrier1 = BABYLON.MeshBuilder.CreateBox("barrier1", {height: 4, width: 8, depth: 0.5}, scene);
+            barrier1.position = new BABYLON.Vector3(testLocX, 0, testLocZ);
+            barrier1.material = greyMid;
+            var barrier2 = BABYLON.MeshBuilder.CreateBox("barrier2", {height: 4, width: 0.5, depth: 2}, scene);
+            barrier2.position = new BABYLON.Vector3(testLocX, 0, testLocZ -1.5);
+            barrier2.material = greyMid;
+            var barrier3 = BABYLON.MeshBuilder.CreateBox("barrier3", {height: 4, width: 2, depth: 0.5}, scene);
+            barrier3.position = new BABYLON.Vector3(testLocX-5.2, 0, testLocZ -1.5);
+            barrier3.material = greyMid;
+            var barrier4 = BABYLON.MeshBuilder.CreateBox("barrier4", {height: 4, width: 6, depth: 0.5}, scene);
+            barrier4.position = new BABYLON.Vector3(testLocX, 0, testLocZ +2);
+            barrier4.rotation = new BABYLON.Vector3(0, 60, 0);
+            barrier4.material = greyMid;
+            barrier5 = BABYLON.MeshBuilder.CreatePlane("barrier5", {height:4, width: 2, sourcePlane: sourcePlane2}, scene);
+            barrier5.position = new BABYLON.Vector3(testLocX-6, 0, testLocZ -1);
+            var barrier6 = BABYLON.MeshBuilder.CreatePlane("barrier6", {height: 4, width: 8}, scene);
+            barrier6.position = new BABYLON.Vector3(testLocX-6, 0, testLocZ);
+            barrier4.rotation = new BABYLON.Vector3(0, 90, 0);
+            
+
 
             // Enable Collisions
             scene.collisionsEnabled = true;
@@ -170,6 +195,38 @@
             wall5.checkCollisions = true;
             door.checkCollisions = true;
             plane2.checkCollisions = true;
+            barrier1.checkCollisions = true;
+            barrier2.checkCollisions = true;
+            barrier3.checkCollisions = true;
+            barrier4.checkCollisions = true;
+
+            // Load GLTF            
+            // BABYLON.SceneLoader.ImportMesh("","/virtual-babylon/gltf/boutique_office_chair/", "scene.gltf", scene, function (mesh) {
+            //   mesh[0].position = new BABYLON.Vector3(3, -1.5, 16);  
+            //   mesh[0].scaling = new BABYLON.Vector3(4, 4, 4);
+            //   mesh[0].rotate(BABYLON.Axis.Y, 180 * (Math.PI/180), BABYLON.Space.WORLD);
+            //   mesh[0].checkCollisions = true;
+            // });  
+
+            var ginnyChair =  
+            BABYLON.SceneLoader.ImportMesh("", "/virtual-babylon/gltf/boutique_office_chair/", "scene.gltf", scene, function (ginnyChair) {
+                ginnyChair[0].position = new BABYLON.Vector3(testLocX +10, -1.5, testLocZ +2);
+                ginnyChair_scalar = 3;
+                ginnyChair[0].scaling = new BABYLON.Vector3(ginnyChair_scalar, ginnyChair_scalar, ginnyChair_scalar);
+                ginnyChair[0].rotate(BABYLON.Axis.Y, 180 * (Math.PI/180), BABYLON.Space.WORLD);
+                ginnyChair[0].checkCollisions = true;
+            });
+            
+            var ginnyChairBoundingBox = BABYLON.MeshBuilder.CreateBox("ginnyChairBoundingBox", {
+                    height: 1.0,
+                    width: 1.0,
+                    depth: 1.0
+                }, scene);
+            ginnyChairBoundingBox.position = new BABYLON.Vector3(testLocX +9.5, -1, testLocZ +4);
+            ginnyChairBoundingBox.scaling = new BABYLON.Vector3(2, 2, 2);
+            //ginnyChairBoundingBox.scaling = new BABYLON.Vector3(2, .5, 2);  // bouncing back
+            ginnyChairBoundingBox.checkCollisions = true;
+            ginnyChairBoundingBox.material = transparent; 
 
 
             // Mouse Clicks
@@ -188,6 +245,10 @@
             }));
             scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function (evt) {                             
                 inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+            }));
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnLeftPickTrigger, function (evt) {
+                console.log(evt);
+                interact(evt)
             }));
 
             
@@ -233,7 +294,7 @@
               posterD.style.display = "block";
             }             
           } else if (id === "cameraModel") {
-            flash.setEnabled(true);
+            flash.setEnabled(true);   
             flashOn = true;   
             prepPhoto = true;   
             // camera animation
@@ -241,7 +302,9 @@
             posterD.style.backgroundImage = 'url("doc.jpg")';
             posterD.style.display = "block";
           }
-        };        
+        };      
+
+        
 
         var closePoster = function() {
           posterD.style.display = "none";
